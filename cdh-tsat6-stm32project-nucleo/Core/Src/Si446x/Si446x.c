@@ -75,7 +75,7 @@ void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_ADDRMISS(void)
 
 
 // Start of the Interrupt setup routine. Mainly what needs to be done is setting the correct IRQ Port and bit, and figuring out what the counter logic in this #ifdef block does. -NJR
-#ifdef ARDUINO
+#if defined(ARDUINO) || defined(STM32L4xx)
 
 #if SI446X_INTERRUPTS != 0
 // It's not possible to get the current interrupt enabled state in Arduino (SREG only works for AVR based Arduinos, and no way of getting attachInterrupt() status), so we use a counter thing instead
@@ -90,7 +90,11 @@ static inline uint8_t interrupt_off(void)
 {
 	if(!isrBusy)
 	{
+#if defined(ARDUINO)
 		noInterrupts();
+#elif defined(STM32L4xx)
+        __disable_irq();
+#endif
 		isrState++;
 	}
 	return 1;
@@ -103,7 +107,11 @@ static inline uint8_t interrupt_on(void)
 		if(isrState > 0)
 			isrState--;
 		if(isrState == 0)
+#if defined(ARDUINO)
 			interrupts();
+#elif defined(STM32L4xx)
+            __enable_irq();
+#endif
 	}
 	return 0;
 }
@@ -120,17 +128,14 @@ static inline uint8_t interrupt_on(void)
 // need to turn global interrupts off while communicating with the radio.
 // Otherwise, just turn off our own radio interrupt while doing SPI stuff.
 
-/* DISABLED
 // TODO: Figure out if this is going to cause problems later. -NJR
 #if SI446X_INTERRUPTS == 0 && SI446X_INT_SPI_COMMS == 0
 #define SI446X_ATOMIC() ((void)(0));
-#elif defined(ARDUINO)
+#elif defined(ARDUINO) || defined(STM32L4xx)
 #define SI446X_ATOMIC() for(uint8_t _cs2 = interrupt_off(); _cs2; _cs2 = interrupt_on())
 #else
 #define SI446X_ATOMIC()	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) // ATOMIC_BLOCK is an AVR Extension.
 #endif
-
-*/
 
 
 /* DISABLED
