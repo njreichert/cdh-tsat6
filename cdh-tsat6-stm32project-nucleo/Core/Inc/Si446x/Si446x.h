@@ -478,7 +478,7 @@ uint8_t Si446x_dump(void* buff, uint8_t group);
 *
 * @return (none)
 */
-#if DOXYGEN || defined(ARDUINO) || SI446X_INTERRUPTS == 0
+#if DOXYGEN || defined(ARDUINO) || SI446X_INTERRUPTS == 0 || defined(STM32L452xx)
 void Si446x_SERVICE(void);
 #else
 #define Si446x_SERVICE() ((void)(0))

@@ -75,7 +75,7 @@ void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_ADDRMISS(void)
 
 
 // Start of the Interrupt setup routine. Mainly what needs to be done is setting the correct IRQ Port and bit, and figuring out what the counter logic in this #ifdef block does. -NJR
-#if defined(ARDUINO) || defined(STM32L4xx)
+#if defined(ARDUINO) || defined(STM32L452xx)
 
 #if SI446X_INTERRUPTS != 0
 // It's not possible to get the current interrupt enabled state in Arduino (SREG only works for AVR based Arduinos, and no way of getting attachInterrupt() status), so we use a counter thing instead
@@ -92,7 +92,7 @@ static inline uint8_t interrupt_off(void)
 	{
 #if defined(ARDUINO)
 		noInterrupts();
-#elif defined(STM32L4xx)
+#elif defined(STM32L452xx)
         __disable_irq();
 #endif
 		isrState++;
@@ -109,7 +109,7 @@ static inline uint8_t interrupt_on(void)
 		if(isrState == 0)
 #if defined(ARDUINO)
 			interrupts();
-#elif defined(STM32L4xx)
+#elif defined(STM32L452xx)
             __enable_irq();
 #endif
 	}
@@ -131,7 +131,7 @@ static inline uint8_t interrupt_on(void)
 // TODO: Figure out if this is going to cause problems later. -NJR
 #if SI446X_INTERRUPTS == 0 && SI446X_INT_SPI_COMMS == 0
 #define SI446X_ATOMIC() ((void)(0));
-#elif defined(ARDUINO) || defined(STM32L4xx)
+#elif defined(ARDUINO) || defined(STM32L452xx)
 #define SI446X_ATOMIC() for(uint8_t _cs2 = interrupt_off(); _cs2; _cs2 = interrupt_on())
 #else
 #define SI446X_ATOMIC()	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) // ATOMIC_BLOCK is an AVR Extension.
@@ -162,7 +162,9 @@ uint8_t Si446x_irq_off()
 #endif
 }
 
+*/
 
+/* TODO: Check if isrState needs to be set. We are not ever disabling interrupts.
 // Probably would be easier for now to Re-implement the arduino section as STM32 HAL function calls, since this is not necessarily timing-sensitive? -NJR
 void Si446x_irq_on(uint8_t origVal)
 {
@@ -947,19 +949,16 @@ uint8_t Si446x_dump(void* buff, uint8_t group)
 	
 	return length;
 }
-/*
+
 // This can be repurposed for ISRs.
-#if defined(ARDUINO) || SI446X_INTERRUPTS == 0
+#if defined(ARDUINO) || SI446X_INTERRUPTS == 0 || defined(STM32L452xx)
 void Si446x_SERVICE()
 #else
-
-
-
 // Disabled - AVR-Specific Macro
 ISR(INT_VECTOR) // TODO: Change to STM32.
 #endif
 {
-#if defined(ARDUINO) && (SI446X_INTERRUPTS == 1 || SI446X_INT_SPI_COMMS == 1)
+#if defined(ARDUINO) || defined(STM32L452xx) && (SI446X_INTERRUPTS == 1 || SI446X_INT_SPI_COMMS == 1)
 	isrBusy = 1;
 #endif
 
@@ -1042,8 +1041,7 @@ ISR(INT_VECTOR) // TODO: Change to STM32.
 	if(interrupts[6] & (1<<SI446X_WUT_PEND))
 		SI446X_CB_WUT();
 
-#if defined(ARDUINO) && (SI446X_INTERRUPTS == 1 || SI446X_INT_SPI_COMMS == 1) // INTERRUPT TODO
+#if defined(ARDUINO) || defined(STM32L452xx) && (SI446X_INTERRUPTS == 1 || SI446X_INT_SPI_COMMS == 1) // INTERRUPT TODO
 	isrBusy = 0;
 #endif
 }
-*/
