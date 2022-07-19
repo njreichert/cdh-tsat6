@@ -1,2 +1,6 @@
 # Debug/Build objects -NJR
 Debug/
+
+# Keep VSCode Stuff local. -NJR
+.vscode/
+
