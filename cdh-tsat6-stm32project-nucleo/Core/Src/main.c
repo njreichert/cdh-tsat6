@@ -96,10 +96,13 @@ int main(void)
 
   /* Test code to check if comms on the si446x board is working. -NJR */
   si446x_info_t info = {0};
+  uint8_t data_to_tx[] = {'V', 'E', '4', 'N', 'J', 'R', ' ', 'T', 'E', 'S', 'T', '\n'};
 
   Si446x_init();
 
   Si446x_getInfo(&info);
+
+
 
   /* USER CODE END 2 */
 
@@ -107,9 +110,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	/* Set a breakpoint here to view data grabbed from si446x module. -NJR */
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-	HAL_Delay(1000);
+	  if (!HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin)) {
+		  /* Set a breakpoint here to view data grabbed from si446x module. -NJR */
+		  	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		  	Si446x_TX(data_to_tx, 12, 2, SI446X_STATE_READY);
+		  	HAL_Delay(1000);
+	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -281,6 +288,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Si446x_IRQ_Pin */
+  GPIO_InitStruct.Pin = Si446x_IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Si446x_IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
 }
 

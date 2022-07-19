@@ -137,16 +137,17 @@ static inline uint8_t interrupt_on(void)
 #define SI446X_ATOMIC()	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) // ATOMIC_BLOCK is an AVR Extension.
 #endif
 
-
-/* DISABLED
-
 // When doing SPI comms with the radio or doing multiple commands we don't want the radio interrupt to mess it up.
 uint8_t Si446x_irq_off()
 {
 #if SI446X_INTERRUPTS != 0
 
-#ifdef ARDUINO
+#if defined(ARDUINO) || defined(STM32L452xx)
+#if defined(ARDUINO)
 	detachInterrupt(digitalPinToInterrupt(SI446X_IRQ));
+#elif defined(STM32L452xx)
+	HAL_NVIC_DisableIRQ(STM_IRQ_LINE);
+#endif
 	isrState_local++;
 	return 0;
 #else
@@ -162,20 +163,22 @@ uint8_t Si446x_irq_off()
 #endif
 }
 
-*/
-
-/* TODO: Check if isrState needs to be set. We are not ever disabling interrupts.
 // Probably would be easier for now to Re-implement the arduino section as STM32 HAL function calls, since this is not necessarily timing-sensitive? -NJR
 void Si446x_irq_on(uint8_t origVal)
 {
 #if SI446X_INTERRUPTS != 0
 
-#ifdef ARDUINO
+#if defined(ARDUINO) || defined(STM32L452xx)
 	((void)(origVal));
 	if(isrState_local > 0)
 		isrState_local--;
 	if(isrState_local == 0)
+
+#if defined(ARDUINO)
 		attachInterrupt(digitalPinToInterrupt(SI446X_IRQ), Si446x_SERVICE, FALLING);
+#else // Assuming defined(STM32L452xx)
+		HAL_NVIC_EnableIRQ(STM_IRQ_LINE);
+#endif
 #else
 	if(origVal)// == 2) TODO
 		SI446X_REG_EXTERNAL_INT |= _BV(SI446X_BIT_EXTERNAL_INT);
@@ -186,10 +189,8 @@ void Si446x_irq_on(uint8_t origVal)
 #endif
 }
 
-*/
 
-
-
+/* TODO: I apologise in advance to whomever wants to sort this out. -NJR */
 // A replacement for getResponse and waitForResponse.
 static uint8_t receiveResponse(void* buff, uint8_t len)
 {
@@ -499,19 +500,22 @@ void Si446x_init()
 {
 	cdeselect();
 
-	// gpio_init(); // TODO DISABLED?
-/*
-#ifdef IRQ_BIT
-	// Interrupt pin (input with pullup)
-#if defined(PUEA) || defined(PUEB) || defined(PUEC) || defined(PUED) || defined(PUEE)
-	IRQ_PUE |= _BV(IRQ_BIT);
-#else
-	IRQ_PORT |= _BV(IRQ_BIT);
-#endif
-#endif
-*/ // TODO - Figure out Interrupt stuff.
+	/* Ensure by this point interrupts and relevant GPIOs are enabled. */
+	// gpio_init();
 
-	spi_init();
+	/*
+	#ifdef IRQ_BIT
+		// Interrupt pin (input with pullup)
+	#if defined(PUEA) || defined(PUEB) || defined(PUEC) || defined(PUED) || defined(PUEE)
+		IRQ_PUE |= _BV(IRQ_BIT);
+	#else
+		IRQ_PORT |= _BV(IRQ_BIT);
+	#endif
+	#endif
+	*/
+
+	/* Ensure by this point SPI is enabled. */
+	// spi_init();
 
 	resetDevice();
 	applyStartupConfig();
@@ -521,7 +525,8 @@ void Si446x_init()
 	enabledInterrupts[IRQ_PACKET] = (1<<SI446X_PACKET_RX_PEND) | (1<<SI446X_CRC_ERROR_PEND);
 	//enabledInterrupts[IRQ_MODEM] = (1<<SI446X_SYNC_DETECT_PEND);
 
-	// Si446x_irq_on(1); // DISABLED
+	/* We need a way to be able to take GPIO Interrupts, and turn them off for a certain amount of time. should be doable. */
+	Si446x_irq_on(1);
 }
 
 void Si446x_getInfo(si446x_info_t* info)

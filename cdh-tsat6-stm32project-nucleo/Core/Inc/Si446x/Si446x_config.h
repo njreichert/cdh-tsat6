@@ -9,6 +9,8 @@
 #ifndef SI443X_CONFIG_H_
 #define SI443X_CONFIG_H_
 
+#include "stm32l4xx_hal.h" // For IRQ line defines.
+
 // If other libraries communicate with SPI devices while inside an interrupt then set this to 1, otherwise you can set this to 0
 // If you're not sure then leave this at 1
 // If this is 1 then global interrupts will be turned off when this library uses the SPI bus
@@ -75,6 +77,8 @@
 // Interrupt pin - TBD - NJR
 #define SI446X_IRQ_PORT		D
 #define SI446X_IRQ_BIT		2
+
+#define STM_IRQ_LINE EXTI1_IRQn
 
 // SPI Port.
 #define SPI_PORT SPI1
