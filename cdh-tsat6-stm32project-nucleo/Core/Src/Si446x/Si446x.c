@@ -274,8 +274,8 @@ static uint8_t waitForResponse(void* out, uint8_t outLen, uint8_t useTimeout)
 
 static void doAPI(void* data, uint8_t len, void* out, uint8_t outLen)
 {
-	//SI446X_NO_INTERRUPT() // TODO: re-enable when there are interrupts to actually disable. -NJR
-	//{
+	SI446X_NO_INTERRUPT() // TODO: re-enable when there are interrupts to actually disable. -NJR
+	{
 		// Wait until RF Module is ready. -NJR
 		// Technically this is blocking but commands have to get through eventually. -NJR
 		receiveResponse(NULL, 0);
@@ -293,7 +293,7 @@ static void doAPI(void* data, uint8_t len, void* out, uint8_t outLen)
 		else if(out != NULL) // If we have an output buffer then read command response into it
 			//waitForResponse(out, outLen, 1);
 			receiveResponse(out, outLen);
-	//}
+	}
 }
 
 // Configure a bunch of properties (up to 12 properties in one go)
@@ -776,8 +776,8 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 	((void)(len));
 #endif
 
-	// SI446X_NO_INTERRUPT()
-	// {
+	 SI446X_NO_INTERRUPT()
+	 {
 		if (getState() == SI446X_STATE_TX) { // Already transmitting
 			return 0;
 		}
@@ -833,6 +833,7 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 		// Reset packet length back to max for receive mode
 		setProperty(SI446X_PKT_FIELD_2_LENGTH_LOW, MAX_PACKET_LEN);
 #endif
+	 }
 	return 1;
 }
 
