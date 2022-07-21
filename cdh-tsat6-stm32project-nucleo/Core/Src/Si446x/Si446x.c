@@ -739,7 +739,7 @@ void Si446x_read(void* buff, uint8_t len)
 		}
 	// }
 }
-/*
+
 // TODO maybe
 void Si446x_write(void* buff, uint8_t len)
 {
@@ -748,8 +748,8 @@ void Si446x_write(void* buff, uint8_t len)
 	// this will also allow multiple transmissions without writing FIFO again
 	// however, we wont know if the packet is corrupt until the whole thing has been transmitted/received - might run out of memory if its a large packet, unless its written to some external SPI RAM as its being received
 
-	SI446X_ATOMIC()
-	{
+	//	SI446X_ATOMIC()
+	//	{
 		// Load data to FIFO
 		CHIPSELECT()
 		{
@@ -757,9 +757,8 @@ void Si446x_write(void* buff, uint8_t len)
 			for(uint8_t i=0;i<len;i++)
 				spi_transfer_nr(((uint8_t*)buff)[i]);
 		}
-	}
+	//	}
 }
-*/
 
 #include <stdio.h>
 
