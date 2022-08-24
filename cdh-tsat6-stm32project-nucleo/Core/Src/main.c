@@ -19,6 +19,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+#include <stdio.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Si446x/Si446x.h"
@@ -59,6 +61,53 @@ static void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/*
+ * Ping client
+ *
+ * Time how long it takes to send some data and get a reply
+ * Should be around 5-6ms with default settings
+ */
+
+#define CHANNEL 2
+#define MAX_PACKET_SIZE 10
+#define TIMEOUT 1000
+
+#define TEMP_NUMBER 1337
+
+#define PACKET_NONE		0
+#define PACKET_OK		1
+#define PACKET_INVALID	2
+
+typedef struct{
+	uint8_t ready;
+	uint32_t timestamp;
+	int16_t rssi;
+	uint8_t length;
+	uint8_t buffer[MAX_PACKET_SIZE];
+} pingInfo_t;
+
+static volatile pingInfo_t pingInfo;
+
+void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
+{
+	if(length > MAX_PACKET_SIZE)
+		length = MAX_PACKET_SIZE;
+
+	pingInfo.ready = PACKET_OK;
+	pingInfo.timestamp = TEMP_NUMBER;
+	pingInfo.rssi = rssi;
+	pingInfo.length = length;
+
+	Si446x_read((uint8_t*)pingInfo.buffer, length);
+
+	// Radio will now be in idle mode
+}
+
+void SI446X_CB_RXINVALID(int16_t rssi)
+{
+	pingInfo.ready = PACKET_INVALID;
+	pingInfo.rssi = rssi;
+}
 
 /* USER CODE END 0 */
 
@@ -99,6 +148,7 @@ int main(void)
   uint8_t data_to_tx[] = {'V', 'E', '4', 'N', 'J', 'R', ' ', 'T', 'E', 'S', 'T', '\n'};
 
   Si446x_init();
+  Si446x_setTxPower(SI446X_MAX_TX_POWER);
 
   Si446x_getInfo(&info);
 
@@ -108,19 +158,76 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	  if (!HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin)) {
-		  /* Set a breakpoint here to view data grabbed from si446x module. -NJR */
-		  	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-		  	Si446x_TX(data_to_tx, 12, 2, SI446X_STATE_READY);
-		  	HAL_Delay(1000);
-	  }
+  while (1) {
+		static uint32_t counter;
+		static uint32_t sent;
+		static uint32_t replies;
+		static uint32_t timeouts;
+		static uint32_t invalids;
+
+		// Make data
+		char data[MAX_PACKET_SIZE] = {0};
+		sprintf(data, "test %d", counter);
+		counter++;
+
+		HAL_UART_Transmit(&huart2, "BREAK FOR DATA TO BE SENT\n", sizeof("BREAK FOR DATA TO BE SENT\n"), 1000000);
+
+		uint32_t startTime = HAL_GetTick();
+
+		// Send the data
+		Si446x_TX(data, sizeof(data), CHANNEL, SI446X_STATE_RX);
+		sent++;
+
+		HAL_UART_Transmit(&huart2, "Data sent, waiting for reply...\n", sizeof("Data sent, waiting for reply...\n") - 1, 1000000);
+
+		uint8_t success;
+
+		// Wait for reply with timeout
+		uint32_t sendStartTime = HAL_GetTick();
+		while(1)
+		{
+			success = pingInfo.ready;
+			if(success != PACKET_NONE)
+				break;
+			else if(HAL_GetTick() - sendStartTime > TIMEOUT) // Timeout // TODO typecast to uint16_t
+				break;
+		}
+
+		pingInfo.ready = PACKET_NONE;
+
+		if(success == PACKET_NONE)
+		{
+			HAL_UART_Transmit(&huart2, "Ping timed out\n", sizeof("Ping timed out\n"), 1000000);
+			timeouts++;
+		}
+		else if(success == PACKET_INVALID)
+		{
+			HAL_UART_Transmit(&huart2, "Invalid packet! Breakpoint for dbm!:\n", sizeof("Invalid packet! Breakpoint for dbm!:\n"), 1000000);
+			invalids++;
+		}
+		else
+		{
+			// If success toggle LED and send ping time over UART
+			uint16_t totalTime = pingInfo.timestamp - startTime;
+
+			static uint8_t ledState;
+			HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, ledState ? SET : RESET);
+			ledState = !ledState;
+
+			replies++;
+
+			HAL_UART_Transmit(&huart2, "BREAK HERE FOR SUCCESSFUL PACKET!\n", sizeof("BREAK HERE FOR SUCCESSFUL PACKET!\n"), 1000000);
+		}
+
+		  HAL_UART_Transmit(&huart2, "BREAK HERE FOR STATS!\n", sizeof("BREAK HERE FOR SUCCESSFUL PACKET!\n"), 1000000);
+
+		HAL_Delay(1000);
+  }
+
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
   /* USER CODE END 3 */
 }
 
