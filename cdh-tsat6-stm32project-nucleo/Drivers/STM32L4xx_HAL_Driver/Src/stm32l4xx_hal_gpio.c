@@ -104,6 +104,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
+#include "Si446x/Si446x.h"
 
 /** @addtogroup STM32L4xx_HAL_Driver
   * @{
@@ -512,7 +513,7 @@ void HAL_GPIO_EXTI_IRQHandler(uint16_t GPIO_Pin)
   if(__HAL_GPIO_EXTI_GET_IT(GPIO_Pin) != 0x00u)
   {
     __HAL_GPIO_EXTI_CLEAR_IT(GPIO_Pin);
-    HAL_GPIO_EXTI_Callback(GPIO_Pin);
+    Si446x_SERVICE();
   }
 }
 

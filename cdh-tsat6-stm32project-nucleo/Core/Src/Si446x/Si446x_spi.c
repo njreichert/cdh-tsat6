@@ -26,7 +26,7 @@
 void spi_init()
 {
 	/* TODO: Disable here. Why not just enable SPI normally? (in MX_SPI1_Init()?) */
-	// SPI_PORT->CR1 |= SPI_CR1_SPE; // Enable SPI.
+	 SPI_PORT->CR1 |= SPI_CR1_SPE; // Enable SPI.
 }
 
 uint8_t cselect(void)

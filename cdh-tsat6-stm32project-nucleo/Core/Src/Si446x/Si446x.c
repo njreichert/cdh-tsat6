@@ -515,7 +515,7 @@ void Si446x_init()
 	*/
 
 	/* Ensure by this point SPI is enabled. */
-	// spi_init();
+	spi_init();
 
 	resetDevice();
 	applyStartupConfig();
